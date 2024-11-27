@@ -11,22 +11,22 @@ from .serializers import ProductSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product, Wishlist,Rating,Cart
 from .serializers import ProductSerializer,ProductDetailSerializer,RatingSerializer,CartSerializer
+from rest_framework.exceptions import ValidationError
 
 class AddToCartView(APIView):
     permission_classes=[IsAuthenticated]
     
-    def post(self,request,product_id):
+    def post(self,request):
         user = request.user
-        size = request.data.get('size', 'M')
         quantity = request.data.get('quantity', 1)
         
         try:
-            product = Product.objects.get(id=product_id)
+            product = Product.objects.all()
         except Product.DoesNotExist:
             return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
         
         
-        cart_item = Cart.objects.filter(user=user, product_id=product_id, size=size).first()
+        cart_item = Cart.objects.filter(user=user).first()
         
         if cart_item:
 
@@ -38,7 +38,6 @@ class AddToCartView(APIView):
             serializer = CartSerializer(data={
                 'user': user.id,
                 'product': product.id,
-                'size': size,
                 'quantity': quantity,
             })
             if serializer.is_valid():
@@ -70,12 +69,12 @@ class CartListView(generics.ListAPIView):
 
 class RemoveFromCart(APIView):
     def delete(self, request, *args, **kwargs):
-        product_id = request.query_params.get('product_id')
-        size = request.query_params.get('size')
-
+        product_id = request.data.get('product_id')
         user = request.user
+        if not product_id:
+            return Response({"error": "Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart_item = Cart.objects.filter(user=user, product_id=product_id, size=size).first()
+        cart_item = Cart.objects.filter(user=user, product_id=product_id).first()
 
         if cart_item:
             cart_item.delete()
@@ -97,6 +96,8 @@ class RatingListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         product_id = self.kwargs['product_id']
         product = Product.objects.get(id=product_id)
+        if Rating.objects.filter(user=self.request.user, product=product).exists():
+            raise ValidationError({"detail": "User has already rated this product."})
         serializer.save(user=self.request.user, product=product)
 
 

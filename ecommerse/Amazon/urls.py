@@ -11,8 +11,8 @@ urlpatterns = [
     path('products/<int:product_id>/ratings/', RatingListCreateView.as_view(), name='rating-list-create'),
     path('products/<int:product_id>/ratings/<int:pk>/', RatingDetailView.as_view(), name='rating-detail'),
     path('cart/list/', CartListView.as_view(), name='cart-list'),
-    path('cart/add/<int:product_id>/', AddToCartView.as_view(), name='add-to-cart'),
-    path('cart/remove/', RemoveFromCart.as_view(), name='remove_from_cart'),
+    path('cart/add/', AddToCartView.as_view(), name='add-to-cart'),
+    path('cart/remove/<int:product_id>', RemoveFromCart.as_view(), name='remove_from_cart'),
 
 
 ]

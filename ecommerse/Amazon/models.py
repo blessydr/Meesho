@@ -46,6 +46,17 @@ class Product(models.Model):
     def __str__(self):
         return self.name  
 
+class Rating(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ratings')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ratings')
+    rating = models.PositiveSmallIntegerField(default=1)  # Rating between 1 and 5
+    review = models.TextField(blank=True, null=True)  # Optional review
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+
 
 class Wishlist(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE) 
@@ -57,17 +68,6 @@ class Wishlist(models.Model):
 
 
 
-
-class Rating(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ratings')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ratings')
-    rating = models.PositiveSmallIntegerField(default=1)  # Rating between 1 and 5
-    review = models.TextField(blank=True, null=True)  # Optional review
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ('user', 'product')
 
        
 class Cart(models.Model):
