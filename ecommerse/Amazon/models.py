@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User  
+from multiselectfield import MultiSelectField
 
 
 
@@ -14,43 +15,29 @@ class Product(models.Model):
         ('Home Decor', 'Home Decor'),
         ('Electronics', 'Electronics'),
     ]
-    size_choices = [('S', 'Small'), ('M', 'Medium'), ('L', 'Large')]
+    size_choices = [('S', 'Small'), ('M', 'Medium'), ('L', 'Large'),('XXL','XXL'),('XL','XL'),('XXXL','XXXL')]
     name = models.CharField(max_length=100)  
     description = models.TextField()  
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)  
     price = models.DecimalField(max_digits=10, decimal_places=2)  
     image = models.ImageField(upload_to='products/') 
-    sizes = models.CharField(max_length=1,choices=size_choices)  
+    sizes = MultiSelectField(choices=size_choices)  
     colors = models.CharField(max_length=50)  
     availability = models.BooleanField(default=True)  
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     date_added = models.DateTimeField(auto_now_add=True) 
     date_updated = models.DateTimeField(auto_now=True)  
     brand = models.CharField(max_length=50, blank=True, null=True)  
-    review_count = models.IntegerField(default=0) 
-    ratings_count = models.IntegerField(default=0)  
-
-    def update_rating_info(self):
-        reviews = self.reviews.all()  
-        if reviews.exists():
-            total_reviews = reviews.count() 
-            total_rating = sum(review.rating for review in reviews) 
-            self.rating = total_rating / total_reviews  
-            self.ratings_count = total_reviews  
-            self.review_count = total_reviews  
-        else:
-            self.rating = 0.0
-            self.ratings_count = 0
-            self.review_count = 0
-        self.save()
-    def __str__(self):
-        return self.name  
-
+    likes_count = models.IntegerField(default=0)
+    
+    
+    
+    
 class Rating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ratings')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='ratings')
-    rating = models.PositiveSmallIntegerField(default=1)  # Rating between 1 and 5
-    review = models.TextField(blank=True, null=True)  # Optional review
+    rating = models.PositiveSmallIntegerField(default=1)  
+    review = models.TextField(blank=True, null=True) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -73,7 +60,7 @@ class Wishlist(models.Model):
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    size = models.CharField(max_length=1, choices=Product.size_choices, default='M') 
+    size = models.CharField(max_length=5, choices=Product.size_choices, default='M') 
     quantity = models.PositiveIntegerField(default=1)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     

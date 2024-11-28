@@ -18,6 +18,7 @@ class AddToCartView(APIView):
     
     def post(self,request):
         user = request.user
+        size=request.data.get('size','M')
         quantity = request.data.get('quantity', 1)
         
         try:
@@ -38,6 +39,7 @@ class AddToCartView(APIView):
             serializer = CartSerializer(data={
                 'user': user.id,
                 'product': product.id,
+                'size':size,
                 'quantity': quantity,
             })
             if serializer.is_valid():
@@ -70,6 +72,7 @@ class CartListView(generics.ListAPIView):
 class RemoveFromCart(APIView):
     def delete(self, request, *args, **kwargs):
         product_id = request.data.get('product_id')
+        breakpoint()
         user = request.user
         if not product_id:
             return Response({"error": "Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -89,16 +92,24 @@ class RatingListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = RatingSerializer
 
-    def get_queryset(self):
-        product_id = self.kwargs['product_id']
-        return Rating.objects.filter(product__id=product_id)
-
-    def perform_create(self, serializer):
-        product_id = self.kwargs['product_id']
-        product = Product.objects.get(id=product_id)
-        if Rating.objects.filter(user=self.request.user, product=product).exists():
+    def post(self, request):
+    
+        serializer = RatingSerializer(data=request.data, context={'request': request}) 
+        if Rating.objects.filter(user=self.request.user).exists():
             raise ValidationError({"detail": "User has already rated this product."})
-        serializer.save(user=self.request.user, product=product)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, product_id=None):
+      
+        if not product_id:
+            return Response({"error": "Product ID is required for GET requests."}, status=status.HTTP_400_BAD_REQUEST)
+
+        ratings = Rating.objects.filter(product_id=product_id)  # Filter ratings for the product
+        serializer = RatingSerializer(ratings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class RatingDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -106,13 +117,12 @@ class RatingDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RatingSerializer
 
     def get_queryset(self):
-        product_id = self.kwargs['product_id']
-        return Rating.objects.filter(product__id=product_id, user=self.request.user)
+        return Rating.objects.filter(pk=self.kwargs['pk'], user=self.request.user)
 
     def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.user != request.user:
-            return Response({"error": "You can only edit your own review."}, status=status.HTTP_403_FORBIDDEN)
+        instance = Rating.objects.filter(pk=self.kwargs['pk'], user=self.request.user)
+        # if instance.user != request.user:
+        #     return Response({"error": "You can only edit your own review."}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
 
 
@@ -143,11 +153,11 @@ class WishlistView(generics.ListCreateAPIView):
 
         if not created:
             wishlist_item.delete()
-            product.likes_count = product.wishlists.count() 
+            product.likes_count = Wishlist.objects.filter(product=product,user=user).count()
             product.save()
             return Response({"message": "Removed from wishlist"}, status=status.HTTP_200_OK)
         
-        product.likes_count = product.wishlists.count()
+        product.likes_count = Wishlist.objects.filter(product=product).count()
         product.save()
     
         return Response({"message": "Added to wishlist"}, status=status.HTTP_201_CREATED)
@@ -176,7 +186,7 @@ class LoginView(APIView):
         password = request.data.get('password')
         user = authenticate(request, username=username, password=password)
 
-        if user is not None:
+        if user :
             login(request, user) 
             return Response({"message": "Login successful"}, status=status.HTTP_200_OK)
         return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)

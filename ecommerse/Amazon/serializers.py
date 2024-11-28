@@ -15,8 +15,13 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         
         
     def get_offer_price(self, obj):
+        if obj.discount==0.00:
+            offer_price="no offer"
+            return offer_price
         discount_amount = (obj.price * obj.discount) / 100
         offer_price = obj.price - discount_amount
+       
+            
         return round(offer_price, 2) 
   
     def get_review_count(self, obj):
@@ -27,7 +32,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
   
 class ProductSerializer(serializers.ModelSerializer):
-    likes_count = serializers.IntegerField(read_only=True)  # Read-only to ensure it's not modified through the API
+   
     offer_price = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
 
@@ -37,9 +42,16 @@ class ProductSerializer(serializers.ModelSerializer):
         
         
     def get_offer_price(self, obj):
+        if obj.discount==0.00:
+            offer_price="no offer"
+            return offer_price
         discount_amount = (obj.price * obj.discount) / 100
         offer_price = obj.price - discount_amount
         return round(offer_price, 2) 
+    
+    
+    
+    
     def get_average_rating(self, obj):
         aggregation = obj.ratings.aggregate(
             total_rating=Sum('rating'),
@@ -63,6 +75,15 @@ class RatingSerializer(serializers.ModelSerializer):
         if value < 1 or value > 5:
             raise serializers.ValidationError("Rating must be between 1 and 5.")
         return value   
+    # def validate(self, data):
+    #     user = self.context['request'].user
+    #     product = data['product']
+
+    #     # Check if the user has already rated this product
+    #     if Rating.objects.filter(user=user, product=product).exists():
+    #         raise serializers.ValidationError("You have already rated this product.")
+        
+    #     return data
 
 
 class UserSerializer(serializers.ModelSerializer):
