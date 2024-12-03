@@ -70,6 +70,3 @@ class Cart(models.Model):
         
     def __str__(self):
         return f"Cart of {self.user.username} - Product: {self.product.name} - Quantity: {self.quantity} - Total: {self.total_price}"
-
-    class Meta:
-        unique_together = ('user', 'product', 'size')

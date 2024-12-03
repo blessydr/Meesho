@@ -14,7 +14,7 @@ urlpatterns = [
     path('ratingsedit/<int:pk>/', RatingDetailView.as_view(), name='rating-detail'),
     path('cart/list/', CartListView.as_view(), name='cart-list'),
     path('cart/add/', AddToCartView.as_view(), name='add-to-cart'),
-    path('cart/remove/<int:product_id>/', RemoveFromCart.as_view(), name='remove_from_cart'),
+    path('cart/remove/<int:pk>/', RemoveFromCart.as_view(), name='remove_from_cart'),
 
 
 ]

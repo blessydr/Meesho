@@ -13,39 +13,42 @@ from .models import Product, Wishlist,Rating,Cart
 from .serializers import ProductSerializer,ProductDetailSerializer,RatingSerializer,CartSerializer
 from rest_framework.exceptions import ValidationError
 
+
+
 class AddToCartView(APIView):
-    permission_classes=[IsAuthenticated]
-    
-    def post(self,request):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
         user = request.user
-        size=request.data.get('size','M')
-        quantity = request.data.get('quantity', 1)
-        
+        size = request.data.get('size', 'M') 
+        quantity = int(request.data.get('quantity', 1)) 
+        product_id = request.data.get('product')
+
+        if not product_id:
+            return Response({"error": "Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            product = Product.objects.all()
+            product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
             return Response({"error": "Product does not exist."}, status=status.HTTP_404_NOT_FOUND)
-        
-        
-        cart_item = Cart.objects.filter(user=user).first()
-        
-        if cart_item:
 
+        try:
+            cart_item = Cart.objects.get(user=user, product=product, size=size)
             cart_item.quantity += quantity
             cart_item.save()
             serializer = CartSerializer(cart_item)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
+        except Cart.DoesNotExist:
             serializer = CartSerializer(data={
                 'user': user.id,
                 'product': product.id,
-                'size':size,
+                'size': size,
                 'quantity': quantity,
             })
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
        
        
 class CartListView(generics.ListAPIView):
@@ -71,13 +74,8 @@ class CartListView(generics.ListAPIView):
 
 class RemoveFromCart(APIView):
     def delete(self, request, *args, **kwargs):
-        product_id = request.data.get('product_id')
-        breakpoint()
-        user = request.user
-        if not product_id:
-            return Response({"error": "Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart_item = Cart.objects.filter(user=user, product_id=product_id).first()
+        cart_item = Cart.objects.filter(pk=self.kwargs['pk'], user=self.request.user)
 
         if cart_item:
             cart_item.delete()
